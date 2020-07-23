@@ -47,7 +47,7 @@ and simulation environment(Choregraphy, V-REP) using the user parameters describ
     │   ├── BAXTER_MIMIC.py                     # BAXTER robot class for simulation based training  
     │   ├── C3PO_MIMIC.py                       # C3PO robot class for simulation based training
     │   └── NAO_MIMIC.py                        # NAO robot class for simulation based training
-    ├── trained_models                           
+    ├── trained_models                          # This folder should be downloaded 
     │   |── ppo                                 
     |   |   |── phase1                          # Augmented robot motion trajectory dataset
     |   |   |── phase2                          # Trained policy using PPO algorithm
