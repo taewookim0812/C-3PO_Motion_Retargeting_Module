@@ -17,7 +17,10 @@ Following figure represents the overall structure of our C-3PO motion retargetin
 ```
 
 ### Getting Started
-```buildoutcfg 
+<pre>
+Before you start, please download <a href="https://drive.google.com/file/d/103Ua1wgLXUKuD-TWySZ7I7dELbxioPip/view?usp=sharing">"trained_models.zip"</a> 
+and extract the file here without any modifications of the file name.  
+
 1) Set the appropriate port numbers and run the "demo.py" file of the robot control module.
 2) Set the identical port number to the robot control module.
 3) After initialize the arguments and user parameters, run the "pykinect_stream.py" file and enjoy.
@@ -25,7 +28,7 @@ Following figure represents the overall structure of our C-3PO motion retargetin
 You can choose motion retargeting mode(Analytic, C3PO), robots(NAO, Baxter, C-3PO) 
 and simulation environment(Choregraphy, V-REP) using the user parameters described at the top of the 
 "pykinect_stream.py".   
-```
+</pre>
 
 ### File descriptions
 ```buildoutcfg
