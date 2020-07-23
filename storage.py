@@ -1,0 +1,165 @@
+import torch
+from torch.utils.data.sampler import BatchSampler, SubsetRandomSampler, SequentialSampler
+
+
+class RolloutStorage(object):
+    def __init__(self, num_steps, num_processes, obs_shape, state_shape, action_space):
+        self.observations = torch.zeros(num_steps + 1, num_processes, *obs_shape)   # (obs, ) , Ex) (264, )
+        self.states = torch.zeros(num_steps + 1, num_processes, *state_shape)
+        self.rewards = torch.zeros(num_steps, num_processes, 1)
+        self.value_preds = torch.zeros(num_steps + 1, num_processes, 1)
+        self.returns = torch.zeros(num_steps + 1, num_processes, 1)
+        self.action_log_probs = torch.zeros(num_steps, num_processes, 1)
+        if action_space.__class__.__name__ == 'Discrete':
+            action_shape = 1
+        else:
+            action_shape = action_space.shape[0]
+        self.actions = torch.zeros(num_steps, num_processes, action_shape)
+        if action_space.__class__.__name__ == 'Discrete':
+            self.actions = self.actions.long()
+        self.masks = torch.ones(num_steps + 1, num_processes, 1)
+
+        self.num_steps = num_steps
+        self.step = 0
+
+    def clean(self):
+        pass
+
+    def cuda(self):
+        self.observations = self.observations.cuda()
+        self.states = self.states.cuda()
+        self.rewards = self.rewards.cuda()
+        self.value_preds = self.value_preds.cuda()
+        self.returns = self.returns.cuda()
+        self.action_log_probs = self.action_log_probs.cuda()
+        self.actions = self.actions.cuda()
+        self.masks = self.masks.cuda()
+
+    def insert(self, current_obs, state, action, action_log_prob, value_pred, reward, mask):
+        self.observations[self.step + 1].copy_(current_obs)
+        self.states[self.step + 1].copy_(state)
+        self.actions[self.step].copy_(action)
+        self.action_log_probs[self.step].copy_(action_log_prob)
+        self.value_preds[self.step].copy_(value_pred)
+        self.rewards[self.step].copy_(reward)
+        self.masks[self.step + 1].copy_(mask)
+        
+        self.step = (self.step + 1) % self.num_steps
+
+    def after_update(self):
+        self.observations[0].copy_(self.observations[-1])
+        self.states[0].copy_(self.states[-1])
+        self.masks[0].copy_(self.masks[-1])
+
+    # get discounted rewards R+gamma*G, discounted 리턴 계산
+    def compute_returns(self, next_value, use_gae, gamma, tau, discount_mode):
+        if use_gae:
+            self.value_preds[-1] = next_value
+            gae = 0
+            for step in reversed(range(self.rewards.size(0))):
+                delta = self.rewards[step] + gamma * self.value_preds[step + 1] * self.masks[step + 1] - self.value_preds[step]
+                gae = delta + gamma * tau * self.masks[step + 1] * gae
+                self.returns[step] = gae + self.value_preds[step]
+        else:
+            # if discount_mode == 'single':
+            #     self.returns[-1] = next_value   # obs
+            #     for step in reversed(range(self.rewards.size(0))):      # rewards 와 returns 를 헷갈리지 말자..
+            #         self.returns[step] = self.rewards[step]
+            if discount_mode == 'local':    # n-step Monte-Carlo update
+                self.returns[-1] = 0  # obs
+                for step in reversed(range(self.rewards.size(0))):  # rewards 와 returns 를 헷갈리지 말자..
+                    if step < self.rewards.size(0)-1:
+                        self.returns[step + 1] = self.rewards[step + 1]
+                    self.returns[step] = self.returns[step + 1] * \
+                                         gamma * self.masks[step + 1] + self.rewards[step]
+            elif discount_mode == 'single' or discount_mode == 'global':    # TD prediction
+                self.returns[-1] = next_value  # obs
+                for step in reversed(range(self.rewards.size(0))):  # rewards 와 returns 를 헷갈리지 말자..
+                    self.returns[step] = self.returns[step + 1] * \
+                                         gamma * self.masks[step + 1] + self.rewards[step]
+            else:
+                raise ValueError
+
+    def feed_forward_generator(self, advantages, num_mini_batch):
+        num_steps, num_processes = self.rewards.size()[0:2]  # num_steps: 1024, 2048, ...
+        batch_size = num_processes * num_steps  # step size만큼의 batch_size
+        # Ex] 2048 // 32 = 64
+        mini_batch_size = batch_size // num_mini_batch  # 몫 계산. batch_size가 num_mini_batch보다 작으면 0이 되어 에러
+
+        sampler = BatchSampler(SubsetRandomSampler(range(batch_size)), mini_batch_size, drop_last=False)
+        for indices in sampler:     # mini_batch_size개의 batch 데이터들에 대한 묶음이 sampler에 저장.
+            indices = torch.LongTensor(indices)
+
+            if advantages.is_cuda:
+                indices = indices.cuda()
+
+            observations_batch = self.observations[:-1].view(-1,
+                                        *self.observations.size()[2:])[indices]
+            states_batch = self.states[:-1].view(-1, self.states.size(-1))[indices]
+            actions_batch = self.actions.view(-1, self.actions.size(-1))[indices]
+            return_batch = self.returns[:-1].view(-1, 1)[indices]
+            masks_batch = self.masks[:-1].view(-1, 1)[indices]
+            old_action_log_probs_batch = self.action_log_probs.view(-1, 1)[indices]
+            adv_targ = advantages.view(-1, 1)[indices]
+
+            yield observations_batch, states_batch, actions_batch, \
+                return_batch, masks_batch, old_action_log_probs_batch, adv_targ
+
+    def sequence_generator(self, advantages, num_mini_batch):
+        num_steps, num_processes = self.rewards.size()[0:2]  # num_steps: 1024, 2048, ...
+        batch_size = num_processes * num_steps  # step size만큼의 batch_size
+        # Ex] 2048 // 32 = 64
+        mini_batch_size = batch_size // num_mini_batch  # 몫 계산. batch_size가 num_mini_batch보다 작으면 0이 되어 에러
+
+        sampler = BatchSampler(SequentialSampler(range(batch_size)), mini_batch_size, drop_last=False)
+        for indices in sampler:  # mini_batch_size개의 batch 데이터들에 대한 묶음이 sampler에 저장.
+            indices = torch.LongTensor(indices)
+
+            if advantages.is_cuda:
+                indices = indices.cuda()
+
+            observations_batch = self.observations[:-1].view(-1,
+                                                             *self.observations.size()[2:])[indices]
+            states_batch = self.states[:-1].view(-1, self.states.size(-1))[indices]
+            actions_batch = self.actions.view(-1, self.actions.size(-1))[indices]
+            return_batch = self.returns[:-1].view(-1, 1)[indices]
+            masks_batch = self.masks[:-1].view(-1, 1)[indices]
+            old_action_log_probs_batch = self.action_log_probs.view(-1, 1)[indices]
+            adv_targ = advantages.view(-1, 1)[indices]
+
+            yield observations_batch, states_batch, actions_batch, \
+                  return_batch, masks_batch, old_action_log_probs_batch, adv_targ
+
+    def recurrent_generator(self, advantages, num_mini_batch):
+        num_processes = self.rewards.size(1)    # nEnv
+        num_envs_per_batch = num_processes // num_mini_batch
+        perm = torch.randperm(num_processes)
+        for start_ind in range(0, num_processes, num_envs_per_batch):
+            observations_batch = []
+            states_batch = []
+            actions_batch = []
+            return_batch = []
+            masks_batch = []
+            old_action_log_probs_batch = []
+            adv_targ = []
+
+            for offset in range(num_envs_per_batch):
+                ind = perm[start_ind + offset]
+                observations_batch.append(self.observations[:-1, ind])
+                states_batch.append(self.states[0:1, ind])
+                actions_batch.append(self.actions[:, ind])
+                return_batch.append(self.returns[:-1, ind])
+                masks_batch.append(self.masks[:-1, ind])
+                old_action_log_probs_batch.append(self.action_log_probs[:, ind])
+                adv_targ.append(advantages[:, ind])
+
+            observations_batch = torch.cat(observations_batch, 0)
+            states_batch = torch.cat(states_batch, 0)
+            actions_batch = torch.cat(actions_batch, 0)
+            return_batch = torch.cat(return_batch, 0)
+            masks_batch = torch.cat(masks_batch, 0)
+            old_action_log_probs_batch = torch.cat(old_action_log_probs_batch, 0)
+            adv_targ = torch.cat(adv_targ, 0)
+
+            yield observations_batch, states_batch, actions_batch, \
+                return_batch, masks_batch, old_action_log_probs_batch, adv_targ
