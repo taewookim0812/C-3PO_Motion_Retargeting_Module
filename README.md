@@ -18,7 +18,7 @@ Following figure represents the overall structure of our C-3PO motion retargetin
 
 ### Getting Started
 <pre>
-Before you start, please download <a href="https://drive.google.com/file/d/103Ua1wgLXUKuD-TWySZ7I7dELbxioPip/view?usp=sharing">"trained_models.zip"</a> 
+Before you start, please download <a href="https://drive.google.com/file/d/1W6I5uVB8DalksqW26B9LJ0GBKLzwBONQ/view?usp=sharing">"trained_models.zip"</a> 
 and extract the file here without any modifications of the file name.  
 
 1) Set the appropriate port numbers and run the "demo.py" file of the robot control module.
