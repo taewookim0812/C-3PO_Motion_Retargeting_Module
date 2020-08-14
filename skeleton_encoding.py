@@ -3,17 +3,16 @@ import numpy as np
 from Skeleton import Skeleton, Category, Body_struct, Joint_struct
 import os, glob, random
 
-# [22, 23, 31, 37, 38, 39]
 action_class_list = [22, 23, 31, 37, 38, 39]
+
 
 def load_and_save_raw_data():
     train_skeleton_file_dict = {}
 
     for i in action_class_list:
         A = 'A' + '{0:03}'.format(i)  # Action class label
-        my_path = '/dd/'  # [Important!!] change the '/dd/' to your own path
         category = Category()
-        file_path = os.path.join(my_path, 'NTU_DB', category.daily_action, A)
+        file_path = os.path.join(NTU_DB_PATH, 'NTU_DB', category.daily_action, A)
 
         # Read skeleton exception file list
         skeleton_file_list = sorted(glob.glob(file_path + "/*.skeleton"))
@@ -37,23 +36,23 @@ def load_and_save_raw_data():
         save_name = save_skeleton_data(np_train_data, [i], fc_list, data_type='Raw')
 
 
-# prepare the training and test data separately from the skeleton files
+# prepare the training and test data independently from the skeleton files
 # fetch the skeleton data from skeleton file, except for the exception files
-def prepare_training_test_data():
+def prepare_training_test_data(my_own_data_path):
     train_skeleton_file_dict = {}
     test_skeleton_file_dict = {}
     train_skeleton_file_list = []
     test_skeleton_file_list = []
     for i in action_class_list:
         A = 'A' + '{0:03}'.format(i)  # Action class label
-        my_path = '/dd/'  # [Important!!] change the '/dd/' to your own path
         category = Category()
-        file_path = os.path.join(my_path, 'NTU_DB', category.daily_action, A)
+        file_path = os.path.join(my_own_data_path, 'NTU_DB', category.daily_action, A)
 
         # Read skeleton exception file list
         skeleton_file_list = sorted(glob.glob(file_path + "/*.skeleton"))
-        # exclude exception files
-        with open(A + '_exeception_skeleton_list.txt', 'r') as f_skel:
+        # remove the exception files
+        ex_path = os.path.join('exception_file_list', A + '_exeception_skeleton_list.txt')
+        with open(ex_path, 'r') as f_skel:
             exception_skel_list = f_skel.readlines()
         for j in range(len(exception_skel_list)):
             exc_file = exception_skel_list[j].replace('\n', '')
@@ -70,13 +69,18 @@ def prepare_training_test_data():
         test_skeleton_file_dict[i] = test_skeleton_file_list
         test_skeleton_file_list = []
 
+    save_path = './data/skeleton'
+    try:
+        os.makedirs(save_path)
+    except OSError:
+        print('Folder exists..')
+
     for i in action_class_list:
         print('Class Num: ', i)
         print('Train Length: ', len(train_skeleton_file_dict[i]), train_skeleton_file_dict[i])
         print('Test Length: ', len(test_skeleton_file_dict[i]), test_skeleton_file_dict[i])
 
         # Save the Exception File List
-        save_path = './data/skeleton'
         data_type = 'Train'
         save_name = make_class_prefix([i]) + data_type + 'FileList' + '(' + str(len(train_skeleton_file_dict[i])) + ')'
         full_path = os.path.join(save_path, save_name + '.txt')
@@ -280,6 +284,38 @@ def save_skeleton_data(np_data, class_list, fc_list, data_type='Raw'):
     return save_name
 
 
+def viz_skeleton(skeletonFrames, frameCountList, period=10000):
+    from SkeletonDataManager import SkeletonDataManager
+    import matplotlib.pyplot as plt
+    from mpl_toolkits.mplot3d import Axes3D
+    connecting_joint = [2, 1, 21, 3, 21, 5, 6, 7, 21, 9, 10, 11, 1, 13, 14, 15, 1, 17, 18, 19, 2, 8, 8, 12, 12]
+    sdm = SkeletonDataManager(skeletonFrames, frameCountList)
+    plt.ion()
+    fig = plt.figure()
+    ax = fig.add_subplot(111, projection='3d')
+    for i in range(period):
+        frame, _, _ = sdm.get_random_scene_frame()
+        for j in range(25):
+            x = frame[j * 3 + 0]
+            y = frame[j * 3 + 1]
+            z = frame[j * 3 + 2]
+            ax.scatter(x, y, z)
+            p = connecting_joint[j] - 1  # pair joint index
+
+            xp = frame[p * 3 + 0]
+            yp = frame[p * 3 + 1]
+            zp = frame[p * 3 + 2]
+            ax.plot([x, xp], [y, yp], [z, zp])
+
+        ax.title.set_text('Skeleton Play')
+        ax.set_xlim(-1, 1)
+        ax.set_ylim(-1, 1)
+        ax.set_zlim(-1, 1)
+        plt.draw()
+        plt.pause(0.01)
+        ax.cla()
+
+
 ###########################################################################
 ############################# Encoding Functions ##########################
 ###########################################################################
@@ -319,21 +355,19 @@ def train(epoch, train_loader):
 
 
 if __name__ == '__main__':
-    from_raw_data = False
+    raw_data_preprop = False
 
-    if from_raw_data == True:
-        # Training data processing
-        train_skeleton_dict, test_skeleton_dict = prepare_training_test_data()
-        # load_and_save_raw_data()
+    # Divide the raw skeleton data into training and test, and save them respectively
+    if raw_data_preprop == True:
+        train_skeleton_dict, test_skeleton_dict = prepare_training_test_data(my_own_data_path=NTU_DB_PATH)
 
         for i in action_class_list:
-            # Data load from NTU DB and save
             # Training Data Set
             train_data, total_frame, fc_list = skeleton_motion_data_collect(train_skeleton_dict[i])
             np_train_data = skeleton_coordinate_transform(train_data, total_frame)
             print('fc_list: ', fc_list, 'np_train_data: ', np_train_data, ' shape: ', np_train_data.shape)
             save_name = save_skeleton_data(np_train_data, [i], fc_list, data_type='Train')
-            train_skeleton_data, _, fc_list = load_skeleton_data(save_name)
+            # train_skeleton_data, _, fc_list = load_skeleton_data(save_name)
 
             # Test Data Set
             test_data, total_frame, fc_list = skeleton_motion_data_collect(test_skeleton_dict[i])
@@ -341,47 +375,21 @@ if __name__ == '__main__':
             print('fc_list: ', fc_list, 'np_test_data: ', np_test_data, ' shape: ', np_test_data.shape)
             save_name = save_skeleton_data(np_test_data, [i], fc_list, data_type='Test')
             # test_skeleton_data, _, fc_list = load_skeleton_data(save_name)
-    else:
-        all_train_skeleton_data = np.empty((0, 76))  #np.array([])
-        # Load already generated skeleton data
-        for i in action_class_list:
-            np_train_skeleton_data, _, fc_list = load_skeleton_data(skeleton_train_dict[i])
-            # print('len: ', len(fc_list), ' sum: ', sum(fc_list), fc_list)
-            print('i: ', i, ' shape: ', np_train_skeleton_data.shape, len(fc_list))
-            all_train_skeleton_data = np.vstack((all_train_skeleton_data, np_train_skeleton_data))
-            print('Finished the frame data Load of: ', i)
+
+    # Learning Skeleton VAE from prepared training data
+    all_train_skeleton_data = np.empty((0, 76))
+    all_train_frame_count = []
+    for i in action_class_list:
+        np_train_skeleton_data, _, fc_list = load_skeleton_data(skeleton_train_dict[i])
+        print('i: ', i, ' shape: ', np_train_skeleton_data.shape, len(fc_list))
+        all_train_skeleton_data = np.vstack((all_train_skeleton_data, np_train_skeleton_data))
+        all_train_frame_count += fc_list
+        print('Finished the frame data Load of: ', i)
 
     print(all_train_skeleton_data.shape, all_train_skeleton_data)
-    # np.random.shuffle(all_train_skeleton_data)
-    # print(all_train_skeleton_data.shape, all_train_skeleton_data)
+    # viz_skeleton(merged_train_skeleton_data, merged_train_frame_count)
 
-    # from SkeletonDataManager import SkeletonDataManager
-    # import matplotlib.pyplot as plt
-    # from mpl_toolkits.mplot3d import Axes3D
-    # import time
-    # sdm = SkeletonDataManager(skeleton_data, fc_list)
-    # # plot code
-    # plt.ion()
-    # fig = plt.figure()
-    # ax = fig.add_subplot(111, projection='3d')
-    # for i in range(40000):
-    #     frame = sdm.get_random_scene_frame()
-    #     for j in range(25):
-    #         x = frame[j*3+0]
-    #         y = frame[j*3+1]
-    #         z = frame[j*3+2]
-    #         ax.scatter(x, y, z)
-    #         # print('frame: ', frame)
-    #
-    #     plt.xlim(-1, 1)
-    #     plt.ylim(-1, 1)
-    #     plt.draw()
-    #     plt.pause(0.03)
-    #     ax.cla()
-    # exit()
-
-    # Remove the time phase
-    train_src = all_train_skeleton_data[:, :-1]
+    train_src = all_train_skeleton_data[:, :-1]     # without the time phase
     kwargs = {'num_workers': 1, 'pin_memory': True} if args.cuda else {}
     train_loader = torch.utils.data.DataLoader(torch.from_numpy(train_src).float(),
                                                batch_size=args.batch_size, shuffle=True, **kwargs)
@@ -391,9 +399,7 @@ if __name__ == '__main__':
         train(epoch, train_loader)
         # test(epoch, test_loader)
 
-    # save the trained model
     save_path = os.path.join('./trained_models', 'vae')
-    # save_name = 'Skel_vae_' + make_class_prefix(action_class_list)
     save_name = 'Skel_vae_Superset'
     print(save_name + '.pt')
     try:
@@ -402,7 +408,5 @@ if __name__ == '__main__':
         pass
 
     torch.save(model.state_dict(), os.path.join(save_path, save_name + '.pt'))
-
     print('finish!')
-
 

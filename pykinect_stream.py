@@ -31,8 +31,8 @@ from MR_Demo import MR_Demo
 # User Parameters
 socket_comm = True
 retarget_mode = 'C3PO'  # ['Analytic', 'C3PO']
-target_env = 'VREP'    # ['CHREO', 'VREP']
-target_robot = 'C3PO'    # ['NAO', 'BAXTER', 'C3PO']
+target_env = 'CHREO'    # ['CHREO', 'VREP']
+target_robot = 'NAO'    # ['NAO', 'BAXTER', 'C3PO']
 tcp_port = 5007
 # ==================================================
 
@@ -203,11 +203,6 @@ class BodyGameRuntime(object):
         # -----[ For socket Communication, Server ] -----
         if socket_comm:
             conn = SocketCom('localhost', tcp_port)
-            # host = 'localhost'
-            # s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-            # s.bind((host, tcp_port))
-            # s.listen(4)  # total number of clients to access this server.
-            # conn, addr = s.accept()
             print('Port is Opened and Wait for the connection..')
 
             if retarget_mode == 'Analytic':  # direct connect to the NAO agent
@@ -283,7 +278,7 @@ class BodyGameRuntime(object):
 
                     if socket_comm:
                         socket_count += 1
-                        if socket_count >= 1:   # 6
+                        if socket_count >= 1:   # 6, for sync of socket delay
                             socket_count = 0
                             _from = _to = 'None'
                             skel_data = skeleton_coordinate_transform([skel], 1)  # numpy data

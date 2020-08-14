@@ -3,6 +3,7 @@ import copy
 from stable_baselines.common.running_mean_std import RunningMeanStd
 from vecEnv import VecEnv
 
+
 class bVecNormalize(VecEnv):
     def __init__(self, venv, ob=True, st=True, ret=True, clipob=10., clipst=10., cliprew=10., gamma=0.99, epsilon=1e-8):
         VecEnv.__init__(self,

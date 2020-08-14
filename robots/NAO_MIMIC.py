@@ -6,6 +6,7 @@ import vrep
 import torch
 import os
 
+
 class NAO_MIMIC(VecEnv):
     def __init__(self, task='', rModel=None):
         VecEnv.__init__(self,

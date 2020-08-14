@@ -63,31 +63,30 @@ class RolloutStorage(object):
         else:
             # if discount_mode == 'single':
             #     self.returns[-1] = next_value   # obs
-            #     for step in reversed(range(self.rewards.size(0))):      # rewards 와 returns 를 헷갈리지 말자..
+            #     for step in reversed(range(self.rewards.size(0))):
             #         self.returns[step] = self.rewards[step]
             if discount_mode == 'local':    # n-step Monte-Carlo update
                 self.returns[-1] = 0  # obs
-                for step in reversed(range(self.rewards.size(0))):  # rewards 와 returns 를 헷갈리지 말자..
+                for step in reversed(range(self.rewards.size(0))):
                     if step < self.rewards.size(0)-1:
                         self.returns[step + 1] = self.rewards[step + 1]
                     self.returns[step] = self.returns[step + 1] * \
                                          gamma * self.masks[step + 1] + self.rewards[step]
             elif discount_mode == 'single' or discount_mode == 'global':    # TD prediction
                 self.returns[-1] = next_value  # obs
-                for step in reversed(range(self.rewards.size(0))):  # rewards 와 returns 를 헷갈리지 말자..
+                for step in reversed(range(self.rewards.size(0))):
                     self.returns[step] = self.returns[step + 1] * \
                                          gamma * self.masks[step + 1] + self.rewards[step]
             else:
                 raise ValueError
 
     def feed_forward_generator(self, advantages, num_mini_batch):
-        num_steps, num_processes = self.rewards.size()[0:2]  # num_steps: 1024, 2048, ...
-        batch_size = num_processes * num_steps  # step size만큼의 batch_size
-        # Ex] 2048 // 32 = 64
-        mini_batch_size = batch_size // num_mini_batch  # 몫 계산. batch_size가 num_mini_batch보다 작으면 0이 되어 에러
+        num_steps, num_processes = self.rewards.size()[0:2]
+        batch_size = num_processes * num_steps
+        mini_batch_size = batch_size // num_mini_batch
 
         sampler = BatchSampler(SubsetRandomSampler(range(batch_size)), mini_batch_size, drop_last=False)
-        for indices in sampler:     # mini_batch_size개의 batch 데이터들에 대한 묶음이 sampler에 저장.
+        for indices in sampler:
             indices = torch.LongTensor(indices)
 
             if advantages.is_cuda:
@@ -106,13 +105,12 @@ class RolloutStorage(object):
                 return_batch, masks_batch, old_action_log_probs_batch, adv_targ
 
     def sequence_generator(self, advantages, num_mini_batch):
-        num_steps, num_processes = self.rewards.size()[0:2]  # num_steps: 1024, 2048, ...
-        batch_size = num_processes * num_steps  # step size만큼의 batch_size
-        # Ex] 2048 // 32 = 64
-        mini_batch_size = batch_size // num_mini_batch  # 몫 계산. batch_size가 num_mini_batch보다 작으면 0이 되어 에러
+        num_steps, num_processes = self.rewards.size()[0:2]
+        batch_size = num_processes * num_steps
+        mini_batch_size = batch_size // num_mini_batch
 
         sampler = BatchSampler(SequentialSampler(range(batch_size)), mini_batch_size, drop_last=False)
-        for indices in sampler:  # mini_batch_size개의 batch 데이터들에 대한 묶음이 sampler에 저장.
+        for indices in sampler:
             indices = torch.LongTensor(indices)
 
             if advantages.is_cuda:

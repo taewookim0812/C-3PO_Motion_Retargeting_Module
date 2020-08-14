@@ -2,12 +2,18 @@ import subprocess
 import time
 import vrep
 from VecNormalize import bVecNormalize
+import platform
 
 
 class ExpCollector:
     def __init__(self, robot, portNum, comm, motion_sampling=False, enjoy_mode=False):
-        # self.vrep_script_path = "/home/twkim/V-REP_PRO_EDU_V3_6_2_Ubuntu16_04/vrep.sh"
-        self.windows_vrep_script_path = "C:/Program Files/V-REP3/V-REP_PRO_EDU/vrep.exe"
+        """
+        [TODO] Please change the "os_vrep_script_path" into where your vrep is.
+        """
+        if platform.system() == 'Linux':
+            self.os_vrep_script_path = "/home/twkim/V-REP_PRO_EDU_V3_6_2_Ubuntu16_04/vrep.sh"
+        elif platform.system() == 'Windows':
+            self.os_vrep_script_path = "C:/Program Files/V-REP3/V-REP_PRO_EDU/vrep.exe"
 
         self.portNum = portNum
         self.enjoy_mode = enjoy_mode
@@ -48,14 +54,13 @@ class ExpCollector:
                   + '-g' + str(enjoy_mode) + ' ' \
                   + '-g' + str(self.robot_task) + ' ' \
                   + self.vrep_scene_path   # + '-g' + self.robot_task + ' ' \
-        vrep_cmd = [self.windows_vrep_script_path] + arguments.split(' ')
+        vrep_cmd = [self.os_vrep_script_path] + arguments.split(' ')
         return vrep_cmd
 
     def simStart(self, gui_on=False, autoStart=True, autoQuit=True, autoRunTime=0, epiNum=50):
         vrep.simxFinish(-1)
         cmd = self.generate_vrep_cmd(gui_on=gui_on, autoStart=autoStart, autoQuit=autoQuit, autoRunTime=autoRunTime, epiNum=epiNum)
         print('cmd: ', cmd)
-        # subprocess.run(cmd, shell=True, check=True)  # start simulator by command line
         proc = subprocess.Popen(cmd, stdout=subprocess.PIPE)
 
         # attempts to connect for 30 sec
@@ -63,7 +68,6 @@ class ExpCollector:
         while self.clientID == -1:
             self.clientID = vrep.simxStart('127.0.0.1', self.portNum, True, True, 5000, 5)  # Connect to V-REP
 
-            # print('port num: ', self.portNum, '  rank:  ', self.comm.rank, '  client ID: ', self.clientID)
             if abs(time.time() - start) > 30:
                 break
             time.sleep(0.5)

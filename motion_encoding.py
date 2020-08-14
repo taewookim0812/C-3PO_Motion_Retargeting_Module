@@ -18,27 +18,30 @@ except:
     print('')
 from ExpCollector import ExpCollector
 
-# myrobot = NAO_MIMIC(task='RightSalute')
-myrobot = C3PO_MIMIC()
-myrobot = BAXTER_MIMIC()
+robotDict = {'NAO': NAO_MIMIC(), 'Baxter': BAXTER_MIMIC(), 'C3PO': C3PO_MIMIC()}
+"""
+=================================================================
+User Parameters for robot selection.
+Pick a robot name in the "robotDict" and set it to "robot_name"
+================================================================= 
+"""
+robot_name = 'C3PO'
 
+try:
+    myrobot = robotDict[robot_name]
+except KeyError:
+    print('The robot is NOT supported..')
+    exit()
 
 from vae_model import *
 from CommonObject import *
 
 input_dim = 14  # [Head(2), LeftArm(6), RightArm(6)]
-# if myrobot.robot_name == 'NAO_MIMIC':
-#     latent_dim = 7
-# elif myrobot.robot_name == 'BAXTER_MIMIC':
-#     latent_dim = 12
-
 latent_dim = np.prod(myrobot.action_space.shape)
 model = VAE(input_dim, latent_dim=latent_dim, use_batch_norm=False, activation='Tanh')
-# model = VAE_MT(input_dim, input_dim).to(device)
 optimizer = optim.Adam(model.parameters(), lr=1e-4, weight_decay=1e-6)
 
 action_class_list = [22, 23, 31, 37, 38, 39]
-
 str_action_class = 'A' + 'A'.join('{0:03}'.format(action_class_list[i]) for i in range(len(action_class_list)))
 
 
@@ -84,7 +87,6 @@ def motion_data_augmentation(action_class, total_length=20000, noise_scale=0.00)
             index = 0
 
     return augUpperBody
-
 
 
 def motion_data_collect_vrep():
@@ -167,21 +169,17 @@ def train(epoch, train_loader):
 
 
 if __name__ == '__main__':
-    """
-    0: learning from seed motion data with augmentation
-    1: learning from already created data in txt file
-    2: learning from superset data
-    """
-    mode = 2
+    data_aug = False        # Data augmentation
+    data_merge = False      # Merge the individual augmented training data
 
     save_name = 'Motion_vae_' + make_class_prefix(action_class_list)
-    if mode == 0:
-        motion_data = motion_data_augmentation(action_class, total_length=20000, noise_scale=0.05)
+    if data_aug:
+        motion_data = motion_data_augmentation(action_class_list, total_length=20000, noise_scale=0.05)
         # motion_data, _ = motion_data_collect_vrep()
         save_name = save_motion_data(motion_data, str_action_class)
-    elif mode == 1:   # individual VAE learning
+
+    if data_merge:
         all_train_motor_data = np.array([])
-        # Load already generated NAO motion data
         for i in action_class_list:
             np_motion_data, _ = load_motion_data(motion_train_dict[i])
             if all_train_motor_data.size == 0:
@@ -189,18 +187,14 @@ if __name__ == '__main__':
             else:
                 all_train_motor_data = np.vstack((all_train_motor_data, np_motion_data))
             print('Finished the frame data Load of: ', i)
-    elif mode == 2:   # superset learning
-        # Set Robot Name: [NAO, Baxter, C3PO]
-        robot_name = 'C3PO'
-        # load superset data
-        superset_file_path = os.path.join('trained_models', 'ppo', 'phase1')
-        superset_file_name = '[AUG]' + robot_name + '_motion_superset.txt'
 
-        all_train_motor_data = np.loadtxt(os.path.join(superset_file_path, superset_file_name))
-        save_name = '[' + robot_name + ']Motion_vae_Superset'
+    # Learning using augmented and integrated training data
+    superset_file_path = os.path.join('data', 'aug_motion')
+    superset_file_name = '(AUG)' + robot_name + '_motion_superset.txt'
 
-    print(all_train_motor_data.shape, all_train_motor_data)
-    np.random.shuffle(all_train_motor_data)
+    all_train_motor_data = np.loadtxt(os.path.join(superset_file_path, superset_file_name))
+    save_name = '[' + robot_name + ']Motion_vae_Superset'
+
     print(all_train_motor_data.shape, all_train_motor_data)
 
     kwargs = {'num_workers': 1, 'pin_memory': True} if args.cuda else {}

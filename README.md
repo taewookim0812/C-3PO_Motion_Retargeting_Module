@@ -13,30 +13,53 @@ Following figure represents the overall structure of our C-3PO motion retargetin
 
 ### Update
 ```buildoutcfg
-* Training module will be updated soon
+* Phase 2 training module is updated
+* Phase 3 training module will be updated
 ```
 
 ### Getting Started
 <pre>
-Before you start, please download <a href="https://drive.google.com/file/d/1W6I5uVB8DalksqW26B9LJ0GBKLzwBONQ/view?usp=sharing">"trained_models.zip"</a> 
-and extract the file here without any modifications of the file name.  
+- Before you start, please download <a href="https://drive.google.com/file/d/1W6I5uVB8DalksqW26B9LJ0GBKLzwBONQ/view?usp=sharing">"trained_models.zip"</a>
+and extract the file here without any modifications of the file name.
 
+- For training and evaluation, following paths must be modified for your environment.
+    * "NTU_DB_PATH" in CommonObject.py
+    * "os_vrep_script_path" in ExpCollector.py
+
+- Please read ./robots/vrep/ReadMe.txt for initial remoteAPI setup of the V-REP simulator.
+
+- If you want to use the exception files in ./exception_file_list, you should
+modify the first part of the path to your path in accordance with your environment.
+For example, in "/dd/NTU_DB/Daily_Actions/A022/S001C002P006R001A022_rgb.avi",
+"/dd/" should be changed to your path (ex] /MyDB).
+</pre>
+
+* Learning and Evaluation
+<pre>
+- After setting learning parameters, run the "training.py" for learning.
+- For evaluation, you should firstly run "enjoy1.py" and then "enjoy2.py" in order.
+</pre>
+
+* Test
+<pre>
 1) Set the appropriate port numbers and run the "demo.py" file of the robot control module.
 2) Set the identical port number to the robot control module.
 3) After initialize the arguments and user parameters, run the "pykinect_stream.py" file and enjoy.
 
-You can choose motion retargeting mode(Analytic, C3PO), robots(NAO, Baxter, C-3PO) 
-and simulation environment(Choregraphy, V-REP) using the user parameters described at the top of the 
-"pykinect_stream.py".   
+You can choose motion retargeting mode(Analytic, C3PO), robots(NAO, Baxter, C-3PO)
+and simulation environment(Choregraphy, V-REP) using the user parameters described at the top of the
+"pykinect_stream.py".
 </pre>
 
 ### File descriptions
 ```buildoutcfg
     .
+    ├── algo                                    # RL algorithm files ex) PPO,...
     ├── data                                    # Temporary files for training
     │   ├── aug_motion                           
     │   ├── skeleton
     │   └── synthetic_motion
+    ├── exception_file_list                     # Files for noisy skeleton exception 
     ├── figs                                     
     │   └── system.png                          # Figure for README file
     ├── robots
@@ -47,6 +70,8 @@ and simulation environment(Choregraphy, V-REP) using the user parameters describ
     │   ├── BAXTER_MIMIC.py                     # BAXTER robot class for simulation based training  
     │   ├── C3PO_MIMIC.py                       # C3PO robot class for simulation based training
     │   └── NAO_MIMIC.py                        # NAO robot class for simulation based training
+    ├── runs                                    # For tensorboard
+    ├── src                                     # baselines
     ├── trained_models                          # !!! This folder should be downloaded at first !!! 
     │   |── ppo                                 
     |   |   |── phase1                          # Augmented robot motion trajectory dataset
@@ -60,6 +85,8 @@ and simulation environment(Choregraphy, V-REP) using the user parameters describ
     ├── arguments.py                            # Arguments for learning
     ├── CommonObject.py                         # Commonly used functions and variables
     ├── distributions.py                        # Network class for action sampling
+    ├── enjoy1.py                               # First running file for evaluation
+    ├── enjoy2.py                               # Second running file for evaluation
     ├── ExpCollector.py                         # Class for V-REP environment 
     ├── model.py                                # Policy network model definition
     ├── motion_encoding.py                      # Learning robot motion encoder-decoder network
@@ -75,6 +102,7 @@ and simulation environment(Choregraphy, V-REP) using the user parameters describ
     ├── SkeletonDataManager.py                  # Skeleton data management
     ├── storage.py                              # Class for storage and management of rollout data 
     ├── test_skeleton_pose.txt                  # Skeleton frame for test
+    ├── training.py                             # Training file
     ├── utils.py                                # Utility for policy network
     ├── vae_model.py                            # Variational AutoEncoder model
     ├── vecEnv.py                               # Vectorized Environment
@@ -90,9 +118,10 @@ and simulation environment(Choregraphy, V-REP) using the user parameters describ
 
 ### External Dependencies 
 <pre>
-* Python 3.7 ~
+* Python 3.6 ~
 * <a href="https://www.coppeliarobotics.com/">CoppeliaSim(V-REP)</a>
 * <a href="https://www.microsoft.com/en-us/download/details.aspx?id=44559">Kinect Windows Driver</a>
+* <a href="https://pytorch.org/">Pytorch >= 1.3.1</a>
 </pre>
 
 ### Requirements

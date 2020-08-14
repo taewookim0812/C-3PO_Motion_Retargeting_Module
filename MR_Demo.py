@@ -176,7 +176,7 @@ class MR_Demo:
             self.current_state = torch.zeros(1, *self.args.full_state_shape)
 
             self.masks = torch.zeros(1, 1)
-            update_current_obs(obs, self.current_obs)
+            self.update_current_obs(obs, self.current_obs)
 
         if self.args.cyclic_policy:
             with torch.no_grad():
@@ -204,7 +204,7 @@ class MR_Demo:
             x_hat_rj = self.rModel.decode(action).reshape(-1, 14)
 
         next_obs = self.env.robot._obfilt(z)
-        update_current_obs(next_obs, self.current_obs)
+        self.update_current_obs(next_obs, self.current_obs)
 
         return x_hat_rj.squeeze(0).cpu().numpy().tolist()
 
@@ -225,13 +225,13 @@ class MR_Demo:
             self.current_state = torch.zeros(1, *self.args.full_state_shape)
             self.masks = torch.zeros(1, 1)
 
-            update_current_obs(obs, self.current_obs)
+            self.update_current_obs(obs, self.current_obs)
 
             full_state = np.concatenate((np.random.normal(0.0, 0.1, self.args.obs_shape[1]),  # initial obs
                                          state[0]))  # initial state
             if self.args.symm_policy:
                 full_state = state
-            update_current_state(full_state, self.current_state)
+            self.update_current_state(full_state, self.current_state)
 
         # Main loop
         if self.args.cyclic_policy:
@@ -266,7 +266,7 @@ class MR_Demo:
         else:
             self.current_obs *= self.masks
             self.current_state *= self.masks
-        update_current_obs(obs, self.current_obs)
+        self.update_current_obs(obs, self.current_obs)
 
         # make full state
         full_state = np.concatenate((self.current_obs.numpy().flatten(),
@@ -274,6 +274,6 @@ class MR_Demo:
         if self.args.symm_policy:
             full_state = state
 
-        update_current_state(full_state, self.current_state)
+        self.update_current_state(full_state, self.current_state)
 
         return True

@@ -1,12 +1,31 @@
 """
-Description: Commonly used functions, variables and a class
-Author: Tae-woo Kim
+Description: Commonly used functions, variables and a classes
+Author: Taewoo Kim
 Contact: twkim0812@gmail.com
 """
 
 import numpy as np
 import socket, json, os
 import torch
+from arguments import get_args
+
+args = get_args()
+
+
+def update_current_obs(_obs, current_obs):
+    shape_dim0 = current_obs.shape[-1]
+    obs = torch.from_numpy(_obs).float()
+    if args.num_stack > 1:
+        current_obs[:, :-shape_dim0] = current_obs[:, shape_dim0:]  # stack 된 데이터 하나로 이어붙이기
+    current_obs[:, -shape_dim0:] = obs
+    return current_obs
+
+
+def update_current_state(state, current_state):
+    shape_dim0 = current_state.shape[-1]
+    state = torch.from_numpy(state).float()
+    # define stack if you need.
+    current_state[:, -shape_dim0:] = state
 
 
 def r2d(rad):
@@ -16,6 +35,9 @@ def r2d(rad):
 def d2r(deg):
     return deg * (np.pi/180.0)
 
+
+# [TODO] This path must be modified for your environment
+NTU_DB_PATH = '/dd/'
 
 # Number - Action class name pair dictionary of the NTU-DB
 dicActionClass = {22: "cheer_up",

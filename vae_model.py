@@ -1,5 +1,5 @@
 """
-Description: Variational AutoEncoder model for skeleton and robot reference motion
+Description: Variational AutoEncoder model for skeleton and robot reference motion learning
 Author: Tae-woo Kim
 Contact: twkim0812@gmail.com
 """
