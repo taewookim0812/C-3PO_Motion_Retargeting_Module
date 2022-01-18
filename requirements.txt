@@ -38,7 +38,7 @@ matplotlib==3.0.3
 mpi4py==3.0.0
 mujoco-py==1.50.1.65
 numba==0.48.0
-numpy==1.16.2
+numpy==1.21.0
 numpy-quaternion==2019.1.5.3.40.54
 oauthlib==3.1.0
 olefile==0.46
