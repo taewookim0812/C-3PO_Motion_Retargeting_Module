@@ -75,7 +75,7 @@ six==1.14.0
 stable-baselines==2.10.1
 tensorboard==1.15.0
 tensorboardX==2.0
-tensorflow==1.14.0
+tensorflow==2.5.1
 tensorflow-estimator==1.14.0
 termcolor==1.1.0
 torch==1.4.0
