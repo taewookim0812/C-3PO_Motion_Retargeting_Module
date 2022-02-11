@@ -47,7 +47,7 @@ opt-einsum==3.1.0
 pandas==0.24.2
 Pillow==9.0.0
 progressbar2==3.38.0
-protobuf==3.11.2
+protobuf==3.15.0
 pyasn1==0.4.8
 pyasn1-modules==0.2.8
 pybullet==2.4.0
