@@ -4,7 +4,7 @@ astor==0.7.1
 atari-py==0.2.6
 -e git+https://github.com/openai/baselines.git@9cf95a00542dc87b413e765d8c0fdcf0b1684cdc#egg=baselines
 cachetools==4.0.0
-certifi==2019.11.28
+certifi==2022.12.7
 cffi==1.13.2
 chardet==3.0.4
 Click==7.0
