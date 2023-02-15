@@ -86,6 +86,6 @@ tornado==6.0.3
 tqdm==4.28.1
 urllib3==1.26.5
 visdom==0.1.8.8
-Werkzeug==0.16.0
+Werkzeug==2.2.3
 wrapt==1.11.2
 zmq==0.0.0
