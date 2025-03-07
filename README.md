@@ -19,7 +19,7 @@ Following figure represents the overall structure of our C-3PO motion retargetin
 
 ### Getting Started
 <pre>
-- Before you start, please download <a href="https://drive.google.com/file/d/1W6I5uVB8DalksqW26B9LJ0GBKLzwBONQ/view?usp=sharing">"trained_models.zip"</a>
+- Before you start, please download <a href="https://drive.google.com/file/d/1Covr-vyPli7j10EtLmKCN2-WjDzY-uLw/view?usp=sharing">"trained_models.zip"</a>
 and extract the file here without any modifications of the file name.
 
 - For training and evaluation, following paths must be modified for your environment.
